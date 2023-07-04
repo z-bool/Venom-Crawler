@@ -167,6 +167,20 @@ func readCustomFormConfig(options *types.Options) error {
 	return nil
 }
 
+func banner() {
+	var banner = (`
+	____  ____  ____  _____ ____    ____  ____  ____  ____  _      _     _____ ____  _____ ____ 
+	/  _ \/  _ \/ ___\/  __//   _\  / ___\/   _\/  __\/  _ \/ \  /|/ \   /  __//  __\/  __//  _ \
+	| / \|| | \||    \|  \  |  /    |    \|  /  |  \/|| / \|| |  ||| |   |  \  |  \/|| |  _| / \|
+	| |-||| |_/|\___ ||  /_ |  \__  \___ ||  \_ |    /| |-||| |/\||| |_/\|  /_ |    /| |_//| \_/|
+	\_/ \|\____/\____/\____\\____/  \____/\____/\_/\_\\_/ \|\_/  \|\____/\____\\_/\_\\____\\____/
+																								 		
+									by 阿呆安全团队 
+	`)
+
+	fmt.Println(banner)
+}
+
 // parseInputs parses the inputs returning a slice of URLs
 func (r *Runner) parseInputs() []string {
 	values := make(map[string]struct{})
@@ -289,6 +303,7 @@ func (r *Runner) Close() error {
 }
 
 func main() {
+	banner()
 	app := &cli.App{
 		Name:   "ADSEC-CRAWLER",
 		Flags:  cliFlags,
@@ -299,68 +314,70 @@ func main() {
 	if err != nil {
 		logger.Logger.Fatal(err)
 	}
-	domain = strings.TrimSuffix(domain, "/")
-	options := &types.Options{}
-	options.URLs = []string{domain}
-	options.MaxDepth = 3
-	options.FieldScope = "rdn"
-	options.DisplayOutScope = false
-	options.CrawlDuration = 0
-	options.KnownFiles = ""
-	options.BodyReadSize = 2 * 1024 * 1024
-	options.Timeout = 10
-	options.Retries = 1
-	options.Proxy = ""
-	options.CustomHeaders = []string{"User-Agent: \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0\""}
-	options.RateLimit = 150
-	options.FormConfig = ""
-	options.FieldConfig = ""
-	options.Strategy = "depth-first"
-	options.AutomaticFormFill = true
-	options.Headless = true
-	options.IgnoreQueryParams = true
-	options.UseInstalledChrome = false
-	options.HeadlessNoSandbox = false
-	options.ChromeDataDir = ""
-	options.SystemChromePath = ""
-	options.HeadlessNoIncognito = false
-	options.NoScope = false
-	options.Fields = ""
-	options.StoreFields = ""
-	options.Concurrency = 10
-	options.Parallelism = 10
-	options.RateLimitMinute = 0
-	options.Delay = 0
-	options.ScrapeJSResponses = false
-	options.ExtensionFilter = []string{"png", "jpg", "gif", "ico", "jpeg", "mp3", "mp4", "webp", "ttf", "css", "remove", "delete"}
-	options.OutputFilterRegex = []string{"js"}
-	// options.SystemChromePath = "C:/Users/root/AppData/Roaming/rod/browser/chromium-1131003/chrome.exe"
-	options.SystemChromePath = taskConfig.ChromiumPath
-	options.ShowBrowser = false
-	options.OnResult = func(result output.Result) {
-		if result.Response != nil {
-			if result.Response.StatusCode == 200 {
-				logger.Logger.Infoln(result.Request.URL)
-				urls = append(urls, result.Request.URL)
+	if domain != "" {
+		domain = strings.TrimSuffix(domain, "/")
+		options := &types.Options{}
+		options.URLs = []string{domain}
+		options.MaxDepth = 3
+		options.FieldScope = "rdn"
+		options.DisplayOutScope = false
+		options.CrawlDuration = 0
+		options.KnownFiles = ""
+		options.BodyReadSize = 2 * 1024 * 1024
+		options.Timeout = 10
+		options.Retries = 1
+		options.Proxy = ""
+		options.CustomHeaders = []string{"User-Agent: \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/114.0\""}
+		options.RateLimit = 150
+		options.FormConfig = ""
+		options.FieldConfig = ""
+		options.Strategy = "depth-first"
+		options.AutomaticFormFill = true
+		options.Headless = true
+		options.IgnoreQueryParams = true
+		options.UseInstalledChrome = false
+		options.HeadlessNoSandbox = false
+		options.ChromeDataDir = ""
+		options.SystemChromePath = ""
+		options.HeadlessNoIncognito = false
+		options.NoScope = false
+		options.Fields = ""
+		options.StoreFields = ""
+		options.Concurrency = 10
+		options.Parallelism = 10
+		options.RateLimitMinute = 0
+		options.Delay = 0
+		options.ScrapeJSResponses = false
+		options.ExtensionFilter = []string{"png", "jpg", "gif", "ico", "jpeg", "mp3", "mp4", "webp", "ttf", "css", "remove", "delete"}
+		options.OutputFilterRegex = []string{"js"}
+		// options.SystemChromePath = "C:/Users/root/AppData/Roaming/rod/browser/chromium-1131003/chrome.exe"
+		options.SystemChromePath = taskConfig.ChromiumPath
+		options.ShowBrowser = false
+		options.OnResult = func(result output.Result) {
+			if result.Response != nil {
+				if result.Response.StatusCode == 200 {
+					logger.Logger.Infoln(result.Request.URL)
+					urls = append(urls, result.Request.URL)
+				}
 			}
 		}
-	}
-	katanaRunner, err := New(options)
-	if err != nil || katanaRunner == nil {
-		gologger.Fatal().Msgf("不能创建runner: %s\n", err)
-	}
-	defer katanaRunner.Close()
+		katanaRunner, err := New(options)
+		if err != nil || katanaRunner == nil {
+			gologger.Fatal().Msgf("不能创建runner: %s\n", err)
+		}
+		defer katanaRunner.Close()
 
-	if err := katanaRunner.ExecuteCrawling(); err != nil {
-		gologger.Fatal().Msgf("不能执行爬行: %s", err)
-	}
+		if err := katanaRunner.ExecuteCrawling(); err != nil {
+			gologger.Fatal().Msgf("不能执行爬行: %s", err)
+		}
 
-	urlsResult := RemoveDuplicates(urls)
-	gologger.Info().Msg("========接下来是去重后的最终结果======")
-	for _, v := range urlsResult {
-		fmt.Println(v)
+		urlsResult := RemoveDuplicates(urls)
+		gologger.Info().Msg("========接下来是去重后的最终结果======")
+		for _, v := range urlsResult {
+			fmt.Println(v)
+		}
+		WriteArrayToFile(urlsResult)
 	}
-	WriteArrayToFile(urlsResult)
 }
 
 func run(c *cli.Context) error {
