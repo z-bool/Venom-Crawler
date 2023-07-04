@@ -54,7 +54,7 @@ go run .\main.go -c C:/Users/admin/AppData/Roaming/rod/browser/chromium-1131003/
 
 域名不能为空，驱动不能为空。
 
-驱动可以到https://chromedriver.storage.googleapis.com/index.html这个网址选择自己谷歌版本的下载
+驱动可以到https://chromedriver.storage.googleapis.com/index.html 这个网址选择自己谷歌版本的下载
 
 <div id="communicate"></div>
 
