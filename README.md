@@ -1,7 +1,7 @@
 # ADSECCrawlergo - SRC推进器
 **郑重声明：文中所涉及的技术、思路和工具仅供以安全为目的的学习交流使用，<u>任何人不得将其用于非法用途以及盈利等目的，否则后果自行承担</u>** 。
-![banner](./1.png)
-一个下一代基于浏览器内核的URL爬行器（crawlergo+katana）
+![](./1.png)
+一个下一代基于浏览器内核的URL爬行器（crawlergo+katana)
 <p align="center"><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-_red.svg"></a><a href="https://github.com/z-bool/ADSECCrawlergo"><img  src="https://goreportcard.com/badge/github.com/projectdiscovery/httpx"></a></p>
 
 <p align="center"><a href="#install">依赖安装</a> · <a href="#tall">使用说明</a> · <a href="#notice">注意事项</a> · <a href="#communicate">技术交流</a></p>
