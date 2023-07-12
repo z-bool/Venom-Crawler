@@ -355,10 +355,8 @@ func main() {
 		options.ShowBrowser = false
 		options.OnResult = func(result output.Result) {
 			if result.Response != nil {
-				if result.Response.StatusCode == 200 {
-					logger.Logger.Infoln(result.Request.URL)
-					urls = append(urls, result.Request.URL)
-				}
+				logger.Logger.Infoln(result.Request.URL)
+				urls = append(urls, result.Request.URL)
 			}
 		}
 		katanaRunner, err := New(options)
