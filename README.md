@@ -54,7 +54,7 @@ go build . #然后把cmd.exe重命名一下就好
 .\Vebom.exe -url    https://www.sf-express.com
 ```
 
-<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230803000323001.png" alt="image-20230803000323001" style="zoom:80%;" />
+![image-20230803132329679](https://cdn.jsdelivr.net/gh/z-bool/images@master/img/94776E40-A399-4b20-8DE1-E250E9493A91.png)
 
 <img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230803002024945.png" alt="image-20230803002024945"  />
 
