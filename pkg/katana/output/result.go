@@ -1,0 +1,20 @@
+package output
+
+import (
+	"time"
+
+	"Venom-Crawler/pkg/katana/navigation"
+)
+
+// Result of the crawling
+type Result struct {
+	Timestamp time.Time            `json:"timestamp,omitempty"`
+	Request   *navigation.Request  `json:"request,omitempty"`
+	Response  *navigation.Response `json:"response,omitempty"`
+	Error     string               `json:"error,omitempty"`
+}
+
+// HasResponse checks if the result has a valid response
+func (r *Result) HasResponse() bool {
+	return r.Response != nil && r.Response.Resp != nil
+}

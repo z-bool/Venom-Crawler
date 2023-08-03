@@ -1,0 +1,255 @@
+package hybrid
+
+import (
+	"Venom-Crawler/pkg/katana/engine/common"
+	"Venom-Crawler/pkg/katana/engine/parser"
+	"bytes"
+	"github.com/projectdiscovery/retryablehttp-go"
+	"github.com/ttacon/chalk"
+	"io"
+	"log"
+	"net/http"
+	"net/http/httputil"
+
+	"strings"
+	"time"
+
+	"Venom-Crawler/pkg/katana/navigation"
+	"Venom-Crawler/pkg/katana/utils"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/proto"
+	errorutil "github.com/projectdiscovery/utils/errors"
+	mapsutil "github.com/projectdiscovery/utils/maps"
+	stringsutil "github.com/projectdiscovery/utils/strings"
+	urlutil "github.com/projectdiscovery/utils/url"
+)
+
+func (c *Crawler) navigateRequest(s *common.CrawlSession, request *navigation.Request) (*navigation.Response, error) {
+	depth := request.Depth + 1
+	response := &navigation.Response{
+		Depth:        depth,
+		RootHostname: s.Hostname,
+	}
+
+	page, err := s.Browser.Page(proto.TargetCreateTarget{})
+	if err != nil {
+		return nil, errorutil.NewWithTag("hybrid", "could not create target").Wrap(err)
+	}
+	defer page.Close()
+	c.addHeadersToPage(page)
+
+	pageRouter := NewHijack(page)
+	pageRouter.SetPattern(&proto.FetchRequestPattern{
+		URLPattern:   "*",
+		RequestStage: proto.FetchRequestStageResponse,
+	})
+	go pageRouter.Start(func(e *proto.FetchRequestPaused) error {
+		URL, _ := urlutil.Parse(e.Request.URL)
+		body, _ := FetchGetResponseBody(page, e)
+		headers := make(map[string][]string)
+		for _, h := range e.ResponseHeaders {
+			headers[h.Name] = []string{h.Value}
+		}
+		var (
+			statusCode     int
+			statucCodeText string
+		)
+		if e.ResponseStatusCode != nil {
+			statusCode = *e.ResponseStatusCode
+		}
+		if e.ResponseStatusText != "" {
+			statucCodeText = e.ResponseStatusText
+		} else {
+			statucCodeText = http.StatusText(statusCode)
+		}
+		httpreq, _ := http.NewRequest(e.Request.Method, URL.String(), strings.NewReader(e.Request.PostData))
+		// Note: headers are originally sent using `c.addHeadersToPage` below changes are done so that
+		// headers are reflected in request dump
+		if httpreq != nil {
+			for k, v := range c.Headers {
+				httpreq.Header.Set(k, v)
+			}
+		}
+		httpresp := &http.Response{
+			Proto:         "HTTP/1.1",
+			ProtoMajor:    1,
+			ProtoMinor:    1,
+			StatusCode:    statusCode,
+			Status:        statucCodeText,
+			Header:        headers,
+			Body:          io.NopCloser(bytes.NewReader(body)),
+			Request:       httpreq,
+			ContentLength: int64(len(body)),
+		}
+
+		var rawBytesRequest, rawBytesResponse []byte
+		if r, err := retryablehttp.FromRequest(httpreq); err == nil {
+			rawBytesRequest, _ = r.Dump()
+		} else {
+			rawBytesRequest, _ = httputil.DumpRequestOut(httpreq, true)
+		}
+		rawBytesResponse, _ = httputil.DumpResponse(httpresp, true)
+
+		bodyReader, _ := goquery.NewDocumentFromReader(bytes.NewReader(body))
+		technologies := c.Options.Wappalyzer.Fingerprint(headers, body)
+		resp := &navigation.Response{
+			Resp:         httpresp,
+			Body:         string(body),
+			Reader:       bodyReader,
+			Depth:        depth,
+			RootHostname: s.Hostname,
+			Technologies: mapsutil.GetKeys(technologies),
+			StatusCode:   statusCode,
+			Headers:      utils.FlattenHeaders(headers),
+			Raw:          string(rawBytesResponse),
+		}
+
+		// trim trailing /
+		normalizedheadlessURL := strings.TrimSuffix(e.Request.URL, "/")
+		matchOriginalURL := stringsutil.EqualFoldAny(request.URL, e.Request.URL, normalizedheadlessURL)
+		if matchOriginalURL {
+			request.Raw = string(rawBytesRequest)
+			response = resp
+		}
+
+		// process the raw response
+		navigationRequests := parser.ParseResponse(resp)
+		c.Enqueue(s.Queue, navigationRequests...)
+		return FetchContinueRequest(page, e)
+	})() //nolint
+	defer func() {
+		if err := pageRouter.Stop(); err != nil {
+			log.Println(chalk.Red.Color("error: " + err.Error()))
+		}
+	}()
+
+	timeout := time.Duration(c.Options.Options.Timeout) * time.Second
+	page = page.Timeout(timeout)
+
+	// wait the page to be fully loaded and becoming idle
+	waitNavigation := page.WaitNavigation(proto.PageLifecycleEventNameFirstMeaningfulPaint)
+
+	if err := page.Navigate(request.URL); err != nil {
+		return nil, errorutil.NewWithTag("hybrid", "could not navigate target").Wrap(err)
+	}
+
+	waitNavigation()
+
+	var getDocumentDepth = int(-1)
+	getDocument := &proto.DOMGetDocument{Depth: &getDocumentDepth, Pierce: true}
+	result, err := getDocument.Call(page)
+	if err != nil {
+		return nil, errorutil.NewWithTag("hybrid", "could not get dom").Wrap(err)
+	}
+	var builder strings.Builder
+	traverseDOMNode(result.Root, &builder)
+
+	body, err := page.HTML()
+	if err != nil {
+		return nil, errorutil.NewWithTag("hybrid", "could not get html").Wrap(err)
+	}
+
+	parsed, err := urlutil.Parse(request.URL)
+	if err != nil {
+		return nil, errorutil.NewWithTag("hybrid", "url could not be parsed").Wrap(err)
+	}
+
+	if response.Resp == nil {
+		return nil, errorutil.NewWithTag("hybrid", "response is nil").Wrap(err)
+	}
+	response.Resp.Request.URL = parsed.URL
+
+	// Create a copy of intrapolated shadow DOM elements and parse them separately
+	responseCopy := *response
+	responseCopy.Body = builder.String()
+
+	responseCopy.Reader, _ = goquery.NewDocumentFromReader(strings.NewReader(responseCopy.Body))
+	if responseCopy.Reader != nil {
+		navigationRequests := parser.ParseResponse(&responseCopy)
+		c.Enqueue(s.Queue, navigationRequests...)
+	}
+
+	response.Body = body
+
+	response.Reader, err = goquery.NewDocumentFromReader(strings.NewReader(response.Body))
+	if err != nil {
+		return nil, errorutil.NewWithTag("hybrid", "could not parse html").Wrap(err)
+	}
+	return response, nil
+}
+
+func (c *Crawler) addHeadersToPage(page *rod.Page) {
+	if len(c.Headers) == 0 {
+		return
+	}
+	var arr []string
+	for k, v := range c.Headers {
+		arr = append(arr, k, v)
+	}
+	// ignore cleanup callback
+	_, err := page.SetExtraHeaders(arr)
+	if err != nil {
+		log.Println(chalk.Red.Color("error: 设置浏览器请求头出错, " + err.Error()))
+	}
+}
+
+// traverseDOMNode performs traversal of node completely building a pseudo-HTML
+// from it including the Shadow DOM, Pseudo elements and other children.
+//
+// TODO: Remove this method when we implement human-like browser navigation
+// which will anyway use browser APIs to find elements instead of goquery
+// where they will have shadow DOM information.
+func traverseDOMNode(node *proto.DOMNode, builder *strings.Builder) {
+	buildDOMFromNode(node, builder)
+	if node.TemplateContent != nil {
+		traverseDOMNode(node.TemplateContent, builder)
+	}
+	if node.ContentDocument != nil {
+		traverseDOMNode(node.ContentDocument, builder)
+	}
+	for _, children := range node.Children {
+		traverseDOMNode(children, builder)
+	}
+	for _, shadow := range node.ShadowRoots {
+		traverseDOMNode(shadow, builder)
+	}
+	for _, pseudo := range node.PseudoElements {
+		traverseDOMNode(pseudo, builder)
+	}
+}
+
+const (
+	elementNode = 1
+)
+
+var knownElements = map[string]struct{}{
+	"a": {}, "applet": {}, "area": {}, "audio": {}, "base": {}, "blockquote": {}, "body": {}, "button": {}, "embed": {}, "form": {}, "frame": {}, "html": {}, "iframe": {}, "img": {}, "import": {}, "input": {}, "isindex": {}, "link": {}, "meta": {}, "object": {}, "script": {}, "svg": {}, "table": {}, "video": {},
+}
+
+func buildDOMFromNode(node *proto.DOMNode, builder *strings.Builder) {
+	if node.NodeType != elementNode {
+		return
+	}
+	if _, ok := knownElements[node.LocalName]; !ok {
+		return
+	}
+	builder.WriteRune('<')
+	builder.WriteString(node.LocalName)
+	builder.WriteRune(' ')
+	if len(node.Attributes) > 0 {
+		for i := 0; i < len(node.Attributes); i = i + 2 {
+			builder.WriteString(node.Attributes[i])
+			builder.WriteRune('=')
+			builder.WriteString("\"")
+			builder.WriteString(node.Attributes[i+1])
+			builder.WriteString("\"")
+			builder.WriteRune(' ')
+		}
+	}
+	builder.WriteRune('>')
+	builder.WriteString("</")
+	builder.WriteString(node.LocalName)
+	builder.WriteRune('>')
+}

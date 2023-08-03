@@ -1,7 +1,6 @@
-# ADSECCrawlergo - SRC推进器
+# Venom-Crawler - 为Venom-Transponder而生的爬虫神器
+
 **郑重声明：文中所涉及的技术、思路和工具仅供以安全为目的的学习交流使用，<u>任何人不得将其用于非法用途以及盈利等目的，否则后果自行承担</u>** 。
-![image-20230704193158522](https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230704193158522.png)
-一个下一代基于浏览器内核的URL爬行器（crawlergo+katana)
 
 <p align="center"><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-_red.svg"></a><a href="https://github.com/z-bool/ADSECCrawlergo"><img  src="https://goreportcard.com/badge/github.com/projectdiscovery/httpx"></a></p>
 
@@ -11,50 +10,78 @@
 <h3>依赖安装</h3>
 
 ```bash
-go mod tidy # 开启go的mod模式
+go mod tidy # go mod依赖加载
+cd cmd
+go build . #然后把cmd.exe重命名一下就好
 ```
 
 <div id= "tall"></div>
 <h3>使用说明</h3>
 
-安全漏洞赏金计划（SRC）离不开对页面的URL进行爬取，这是因为通过获取页面的URL，可以发现更多的资产和潜在漏洞。URL爬取提供了以下必要性：
+**不再缝合入Gospider原因**：
 
-- 资产发现：通过爬取页面的URL，可以识别出网站中存在的各种资源，如子域名、目录结构、文件路径等。这样的资产发现可以帮助安全研究人员更好地了解目标系统的架构和组成部分。
+感觉Katana+Crawlergo的爬行结果以及足够全，再加入Gospider可能会造成时间的大量冗余，个人比较倾向于基于Chromium的爬行结果，参数可靠。
 
-- 漏洞探测：通过分析和扫描爬取到的URL，可以检测出潜在的漏洞和安全弱点。例如，可以探测到未经授权的访问、敏感信息泄露、SQL注入、跨站脚本攻击等漏洞类型，从而提供给相关方修复漏洞的机会。
+**功能介绍：**
 
-- 全面评估：URL爬取能够帮助安全研究人员对目标系统的整体安全状况进行全面评估。通过收集大量URL，可以形成一个全面的攻击面，有助于识别可能被攻击的目标，并制定相应的安全策略和防护措施。
+- 为了使爬虫爬行的URL尽可能全，所以使用Katana+Crawlergo的方法结合获取所有符合的URL，思路是：先由katana爬行，将爬行的最终结果交给Crawlergo再进行二次爬取，使其左脚踩右脚螺旋升天。
 
-<strong>综上</strong>：通过对页面的URL进行爬取，可以发现更多的资产和潜在漏洞，为挖SRC活动提供必要的信息和基础。所以，这里整合了常用的crawlergo和katana的Headless模式，使其对整个网页的关键位置与DOM渲染阶段进行HOOK，自动进行表单填充并提交，配合智能的JS事件触发，尽可能的收集网站暴露出的入口。内置URL去重，会将结果在终端结尾显示并保存于运行目录下result.txt文件中，考虑多种使用习惯，让漏洞挖掘更高效。
+- 如果配置`-proxy` 将流量代理给被动环境监听的端口（比如：Venom-Transponder、Xray、w13scan等）
+
+- 这里为了防止爬偏，爬行规则就是输入的URL路径，不会爬行其他域名以及子域名
+
+- Katana和Crawlergo的结果都会单独保存在txt中，并且`result-all.txt` 是去重后的最终结果
 
 ```bash
-go run .\main.go -c C:/Users/admin/AppData/Roaming/rod/browser/chromium-1131003/chrome.exe -d https://www.sf-express.com # 以顺丰官网为例，本菜狗在顺丰SRC里混
-# 或者使用打包后的二进制文件 -c path -d url即可
-# go build .
-# ./adsec-scrawlergo -c path -d url
+-headless   是否让爬行时候headless结果可见
+-installChrome 安装Chromium如果环境里没有Chrome或者想自定义Chromium路径但没有的
+-chromium   如果在代码执行过程中报查询不到环境中的浏览器， 将Chrome或者Chromium路径填入即可
+-headers    爬行要求带入的JSON字符串格式的自定义请求头，默认只有UA
+-maxCrawler URL启动的任务最大的爬行个数,这个针对Crawlergo配置
+-mode       爬行模式，simple/smart/strict,默认smart,如果simple模式katana不爬取JS解析的路径
+-proxy      配置代理地址，支持扫描器、流量转发器、Burp、yakit等
+-blackKey   黑名单关键词，用于避免被爬虫执行危险操作，用,分割，如：logout,delete,update
+-url        执行爬行的单个URL
+-urlTxtPath 如果需求是批量爬行URL，那需要将URL写入txt，然后放txt路径
+-encodeUrlWithCharset  是否对URL进行编码，Crwalergo的功能但katana跑完的结果走Crawlergo后也会被编码
+-depth      爬行深度，默认3
 ```
 
-`-c` 指定浏览器内核路径，`-d` 指定域名。
+**不联动其他工具：**
 
-![](https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230704162404206.png)
+```bash
+.\Venom.exe -urlTxtPath .\text.txt
+.\Vebom.exe -url    https://www.sf-express.com
+```
 
-这样即为启动，等待爬取完毕。
+<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230803000323001.png" alt="image-20230803000323001" style="zoom:80%;" />
 
-![image-20230704162800233](https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230704162800233.png)
+<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230803002024945.png" alt="image-20230803002024945"  />
 
-<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230704162718497.png" alt="image-20230704162718497"  />
+**联动其他工具：**
 
-<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230704162907318.png" alt="image-20230704162907318" style="zoom:150%;" />
+```bash
+.\Venom.exe -urlTxtPath .\text.txt -proxy http://127.0.0.1:9090
+.\Vebom.exe -url  https://www.sf-express.com -proxy http://127.0.0.1:9090
+```
 
-这样在result.txt看也可以在终端看也可以。
+<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/1.png" alt="image-20230803122108607" style="zoom:80%;" />
+
+上图的使用思路将，爬虫爬取的URL通过Proxy代理转发给流量转发器，再由流量转发器转发给代理工具/漏扫。
+
+如果想在爬取过程中查看爬行效果的话，可以在命令后面带上`-headless` 就会启动浏览器界面。
+
+<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230803123044626.png" alt="image-20230803123044626" style="zoom:80%;" />
+
+这还不开启捡洞模式？？？
 
 <div id="notice"></div>
 
 <h3>注意事项</h3>
 
-域名不能为空，驱动不能为空。
+ `浏览器上下文创建错误：exec: "google-chrome": executable file not found in %path%` ：
 
-驱动可以到https://chromedriver.storage.googleapis.com/index.html 这个网址选择自己谷歌版本的下载
+说明浏览器没有安装或者%path%环境里面没有chrome的地址，所以我们使用`-installChrome`下载一个Selenium，然后使用`- chromium`指定下载安装的路径启动即可。
 
 <div id="communicate"></div>
 
