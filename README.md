@@ -80,7 +80,7 @@ go build . #然后把cmd.exe重命名一下就好
 
  `浏览器上下文创建错误：exec: "google-chrome": executable file not found in %path%` ：
 
-说明浏览器没有安装或者`%path%` 环境里面没有chrome的地址。
+说明浏览器没有安装或者`%path%` 环境里面没有chromium的地址（用edge/chrome/chromium都可以解决）。
 
 <img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230804230857816.png" alt="image-20230804230857816" style="zoom:50%;" />
 
