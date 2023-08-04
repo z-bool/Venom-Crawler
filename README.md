@@ -34,7 +34,6 @@ go build . #然后把cmd.exe重命名一下就好
 
 ```bash
 -headless   是否让爬行时候headless结果可见
--installChrome 安装Chromium如果环境里没有Chrome或者想自定义Chromium路径但没有的
 -chromium   如果在代码执行过程中报查询不到环境中的浏览器， 将Chrome或者Chromium路径填入即可
 -headers    爬行要求带入的JSON字符串格式的自定义请求头，默认只有UA
 -maxCrawler URL启动的任务最大的爬行个数,这个针对Crawlergo配置
@@ -81,7 +80,13 @@ go build . #然后把cmd.exe重命名一下就好
 
  `浏览器上下文创建错误：exec: "google-chrome": executable file not found in %path%` ：
 
-说明浏览器没有安装或者%path%环境里面没有chrome的地址，所以我们使用`-installChrome`下载一个Selenium，然后使用`- chromium`指定下载安装的路径启动即可。
+说明浏览器没有安装或者`%path%` 环境里面没有chrome的地址。
+
+<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230804230857816.png" alt="image-20230804230857816" style="zoom:50%;" />
+
+<img src="https://cdn.jsdelivr.net/gh/z-bool/images@master/img/image-20230804230941712.png" alt="image-20230804230941712" style="zoom:50%;" />
+
+这里搭配`-chromium`参数即可。
 
 <div id="communicate"></div>
 

@@ -2,11 +2,8 @@ package hybrid
 
 import (
 	"Venom-Crawler/pkg/katana/engine/common"
-	"fmt"
-	"os"
-
 	"Venom-Crawler/pkg/katana/types"
-
+	"fmt"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/launcher/flags"
@@ -15,6 +12,7 @@ import (
 	urlutil "github.com/projectdiscovery/utils/url"
 	ps "github.com/shirou/gopsutil/v3/process"
 	"go.uber.org/multierr"
+	"os"
 )
 
 // Crawler is a standard crawler instance

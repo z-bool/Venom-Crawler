@@ -101,7 +101,6 @@ V::::::V           V::::::V
 	urlTxt := flag.String("urlTxtPath", "", chalk.Green.Color("如果需求是批量爬行URL，那需要将URL写入txt，然后将路径放入"))
 	encode := flag.Bool("encodeUrlWithCharset", false, chalk.Green.Color("是否对URL进行编码"))
 	depth := flag.Int("depth", 3, chalk.Green.Color("最大爬行深度，默认是3"))
-	installChrome := flag.Bool("installChrome", false, chalk.Green.Color("是否安装Chromium，默认false，如果选true请从日志中找到安装记录"))
 	flag.Parse()
 	startCheck()
 	options := &types.Options{}
@@ -117,7 +116,6 @@ V::::::V           V::::::V
 	}
 	options.MaxDepth = *depth
 	options.Headless = true
-	options.UseInstalledChrome = *installChrome
 
 	if *mode == "simple" {
 		options.ScrapeJSResponses = false
@@ -131,6 +129,7 @@ V::::::V           V::::::V
 	options.Timeout = 10
 	options.Retries = 1
 	options.Proxy = *proxy
+
 	// 请求头要单独将json处理为键值对,目前不设置
 	options.Strategy = "depth-first"
 	options.ShowBrowser = *isHeadless
