@@ -104,6 +104,10 @@ V::::::V           V::::::V
 	flag.Parse()
 	startCheck()
 	options := &types.Options{}
+	if *urlTxt == "" && *url == "" {
+		log.Println(chalk.Red.Color("URL文件和URL必须有一个！！！"))
+		os.Exit(0)
+	}
 	var urls []string
 	if *urlTxt != "" {
 		urlList := utils.GetUrlListFromTxt(*urlTxt)
