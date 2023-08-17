@@ -21,7 +21,8 @@ go build . #然后把cmd.exe重命名一下就好
 **不再缝合入Gospider原因**：
 
 感觉Katana+Crawlergo的爬行结果以及足够全，再加入Gospider可能会造成时间的大量冗余，个人比较倾向于基于Chromium的爬行结果，参数可靠。
-
+**其他说明**:
+此项目目前只从爬虫角度解决URL爬取需求，个人觉得没必要缝合dirsearch，为了防止功能冗余，请配合dirseach使用，在后续开发的扫描器中才是发包量最大的（自动化Fuzz挖洞）。
 **功能介绍：**
 
 - 为了使爬虫爬行的URL尽可能全，所以使用Katana+Crawlergo的方法结合获取所有符合的URL，思路是：先由katana爬行，将爬行的最终结果交给Crawlergo再进行二次爬取，使其左脚踩右脚螺旋升天。
