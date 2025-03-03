@@ -1,6 +1,7 @@
 # Venom-Crawler - 为Venom-Transponder而生的爬虫神器
 
 **郑重声明：文中所涉及的技术、思路和工具仅供以安全为目的的学习交流使用，<u>任何人不得将其用于非法用途以及盈利等目的，否则后果自行承担</u>** 。
+
 由于katana不好使，2025.04重新更新
 <p align="center"><a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-_red.svg"></a><a href="https://github.com/z-bool/ADSECCrawlergo"><img  src="https://goreportcard.com/badge/github.com/projectdiscovery/httpx"></a></p>
 
